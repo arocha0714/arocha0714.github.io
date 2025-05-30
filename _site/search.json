@@ -1,0 +1,16 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Alyssa’s Personal Website",
+    "section": "",
+    "text": "This would be my bio…. talk about who you are.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites.\n\nx=1 \ny=2\nz= x+y\nprint(\"The sum of\", x, \"and\", y, \"is\", z)\n\nThe sum of 1 and 2 is 3"
+  }
+]

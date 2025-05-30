@@ -5,3 +5,11 @@ title: "Alyssa's Personal Website"
 This would be my bio.... talk about who you are.
 
 To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+
+
+```{python}
+x=1 
+y=2
+z= x+y
+print("The sum of", x, "and", y, "is", z)
+```

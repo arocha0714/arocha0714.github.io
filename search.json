@@ -12,5 +12,12 @@
     "title": "About",
     "section": "",
     "text": "About this site"
+  },
+  {
+    "objectID": "Introduction.html",
+    "href": "Introduction.html",
+    "title": "Alyssa's Personal Website",
+    "section": "",
+    "text": "x=2\ny=2\nz=x+y\nprint(\"The sum of\", x, \"and\", y, \"is\", z)\n\nThe sum of 2 and 2 is 4"
   }
 ]

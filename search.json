@@ -1,5 +1,12 @@
 [
   {
+    "objectID": "project.html",
+    "href": "project.html",
+    "title": "Alyssa's Personal Website",
+    "section": "",
+    "text": "# Integrate sqlite with Python \nimport sqlite3\n# Connect to the database (or create it if it doesn't exist)\nconn = sqlite3.connect('/Users/alyssarocha/Desktop/AD 599/Project/northwind.db')\ncursor = conn.cursor()\n\n\ncursor.execute(\"SELECT name FROM sqlite_master WHERE type='table';\")\ntables = cursor.fetchall()\n\nprint(\"Tables in the database:\")\nfor table in tables:\n    print(table[0])\n\nTables in the database:\nCategories\nsqlite_sequence\nCustomerCustomerDemo\nCustomerDemographics\nCustomers\nEmployees\nEmployeeTerritories\nOrder Details\nOrders\nProducts\nRegions\nShippers\nSuppliers\nTerritories\n\n\n\ncursor.execute(\"PRAGMA table_info(Products)\")\nprint(cursor.fetchall())\n\n[(0, 'ProductID', 'INTEGER', 1, None, 1), (1, 'ProductName', 'TEXT', 1, None, 0), (2, 'SupplierID', 'INTEGER', 0, None, 0), (3, 'CategoryID', 'INTEGER', 0, None, 0), (4, 'QuantityPerUnit', 'TEXT', 0, None, 0), (5, 'UnitPrice', 'NUMERIC', 0, '0', 0), (6, 'UnitsInStock', 'INTEGER', 0, '0', 0), (7, 'UnitsOnOrder', 'INTEGER', 0, '0', 0), (8, 'ReorderLevel', 'INTEGER', 0, '0', 0), (9, 'Discontinued', 'TEXT', 1, \"'0'\", 0)]"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Alyssa’s Personal Website",

@@ -1,0 +1,328 @@
+---
+jupyter: python3
+---
+
+```{python}
+
+# Integrate sqlite with Python 
+import pandas as pd
+import sqlite3
+# Connect to the database (or create it if it doesn't exist)
+conn = sqlite3.connect('/Users/alyssarocha/Desktop/AD 599/Project/northwind.db')
+cursor = conn.cursor()
+```
+
+```{python}
+"""This function shows the headers of the tables in the database."""
+
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+tables = cursor.fetchall()
+
+print("Tables in the database:")
+for table in tables:
+    print(table[0])
+```
+
+```{python}
+
+"""This function shows the data in a specified table."""
+def show_table_contents(db_path, table_name):
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT * FROM {table_name}")
+        columns = [description[0] for description in cursor.description]
+        rows = cursor.fetchall()
+        print(" | ".join(columns))
+        print("-" * 40)
+        
+        for row in rows:
+            print(" | ".join(str(cell) for cell in row))
+
+    except sqlite3.Error as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+```
+
+```{python}
+show_table_contents('/Users/alyssarocha/Desktop/AD 599/Project/northwind.db', 'employees')
+```
+
+```{python}
+def execute_query(query):
+    cursor.execute(query)
+    return cursor.fetchall()
+```
+
+```{python}
+## Phase 2: SQL Query
+
+""" Part 1: Employee Sales Performance Analysis (1 Points)
+Objective: Identify top-performing employees based on their total sales.
+Tasks:
+1.	Calculate the total sales amount for each employee. Rank employees based on their total sales performance. 
+    Choose a ranking window function carefully. Run everything in SQL Python integration. (Executing SQL queries directly in Python)
+2.	Build a bar chart to show the top 5 performing employees with their sales amount. 
+"""
+query = """
+SELECT 
+    e.EmployeeID,
+    e.FirstName,' ', e.LastName AS EmployeeName,
+    ROUND(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)), 2) AS TotalSales,
+    RANK() OVER (ORDER BY SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) DESC) AS SalesRank
+FROM Employees e
+JOIN Orders o ON e.EmployeeID = o.EmployeeID
+JOIN [Order Details] od ON o.OrderID = od.OrderID
+GROUP BY e.EmployeeID, e.FirstName, e.LastName
+ORDER BY TotalSales DESC;
+"""
+
+# Load results into DataFrame
+df1= pd.read_sql_query(query, conn)
+
+# Show the data
+print(df1.head())
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+top_5_employee = df1.head(5)
+plt.figure(figsize=(10, 6))
+plt.bar(top_5_employee['EmployeeName'], top_5_employee['TotalSales'], color='#b9dbba')
+plt.title('Top 5 Performing Employees by Total Sales')
+plt.xlabel('Employee Name')
+plt.ylabel('Total Sales')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+""" Part 2: Monthly Sales Trend Analysis (1 Points)
+Objective: Analyze monthly sales trends to identify peak sales periods.
+Tasks:
+1.	Aggregate total sales for each month.Calculate the month-over-month sales growth. 
+    Run everything in SQL Python integration. (Executing SQL queries directly in Python)
+2.	Build a Visualization of the Sales Trends in Python.
+"""
+
+query = """ 
+WITH MonthlySales AS (
+    SELECT 
+        strftime('%Y-%m', o.OrderDate) AS SalesMonth,
+        SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+    FROM 
+        Orders o
+    JOIN 
+        [Order Details] od ON o.OrderID = od.OrderID
+    GROUP BY 
+        SalesMonth),
+SalesWithGrowth AS (
+    SELECT 
+        SalesMonth,
+        TotalSales,
+        LAG(TotalSales) OVER (ORDER BY SalesMonth) AS PrevMonthSales
+    FROM MonthlySales)
+SELECT 
+    SalesMonth,TotalSales,
+    PrevMonthSales,
+    ROUND(
+        CASE 
+            WHEN PrevMonthSales IS NOT NULL AND PrevMonthSales != 0 THEN 
+                ((TotalSales - PrevMonthSales) / PrevMonthSales) * 100
+            ELSE NULL
+        END, 2) AS MoM_Growth_Percent
+FROM 
+    SalesWithGrowth;"""
+```
+
+```{python}
+df2 = pd.read_sql_query(query, conn)
+df2.head()
+```
+
+```{python}
+df2['SalesMonth'] = pd.to_datetime(df2['SalesMonth'])
+df2.sort_values('SalesMonth', inplace=True)
+
+plt.figure(figsize=(12, 6))
+plt.plot(df2['SalesMonth'], df2['TotalSales'], label='Total Sales')
+plt.plot(df2['SalesMonth'], df2['MoM_Growth_Percent'], label='MoM Growth (%)')
+plt.title('Monthly Sales and MoM Growth')
+plt.xlabel('Sales Month')
+plt.ylabel('Sales / MoM Growth (%)')
+plt.xticks(rotation=45)
+plt.legend()
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+
+""" Part 3: Product Sales Ranking by Category (1.5 Points)
+Objective: Determine the top-selling products within each category.
+Tasks:
+1.	Calculate total sales for each product.Rank products within their categories. 
+    Choose a ranking window function carefully. Run everything in SQL Python integration. (Executing SQL queries directly in Python)
+"""
+
+
+
+query = """SELECT
+    c.CategoryName as Category,
+    p.ProductName as Product,
+    SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS 'Total Sales',
+    RANK() OVER (
+        PARTITION BY c.CategoryID 
+        ORDER BY SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) DESC
+    ) AS ProductRank
+FROM
+    [Order Details] od
+JOIN
+    Products p ON od.ProductID = p.ProductID
+JOIN
+    Categories c ON p.CategoryID = c.CategoryID
+GROUP BY
+    c.CategoryID,
+    c.CategoryName,
+    p.ProductName
+ORDER BY
+    ProductRank;"""
+    
+```
+
+```{python}
+df3 = pd.read_sql_query(query, conn)
+
+df3.head()
+```
+
+```{python}
+""" Part 4: Customer Purchase Behavior Analysis (1.5 Points)
+Objective: Identify customers with the highest average order value.
+Tasks:
+2.	Calculate the average order value for each customer. Rank customers based on their average order value. Show the customers with Ranks of 2, 3, 5, 8, 12, 15, and 17. Choose a ranking function carefully. Run everything in SQL Python integration. (Executing SQL queries directly in Python)
+ """
+ 
+query = """WITH CustomerOrderValues AS (
+    SELECT o.CustomerID,
+        AVG(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS AvgOrderValue
+    FROM 
+        Orders o
+    JOIN 
+        [Order Details] od ON o.OrderID = od.OrderID
+    GROUP BY 
+        o.orderid, o.customerid),
+CustomerAverages AS (
+    SELECT
+        CustomerID, AVG(AvgOrderValue) AS CustomerAverageOrderValue
+    FROM
+        CustomerOrderValues
+    GROUP BY
+        CustomerID),
+RankedCustomers AS (SELECT CustomerID, CustomerAverageOrderValue,
+        RANK() OVER (ORDER BY CustomerAverageOrderValue DESC) AS Rank
+    FROM CustomerAverages)
+SELECT * FROM 
+    RankedCustomers
+WHERE 
+    Rank IN (2, 3, 5, 8, 12, 15, 17)
+ORDER BY 
+    Rank; """
+```
+
+```{python}
+show_table_contents('/Users/alyssarocha/Desktop/AD 599/Project/northwind.db', 'employees')
+```
+
+```{python}
+query = """
+   SELECT
+    o.ShipCountry AS Country,
+    c.CategoryName AS Category,
+    SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+FROM
+    [Order Details] od
+JOIN
+    Products p ON od.ProductID = p.ProductID
+JOIN
+    Categories c ON p.CategoryID = c.CategoryID
+JOIN
+    Orders o ON od.OrderID = o.OrderID
+GROUP BY
+    o.ShipCountry,
+    c.CategoryName
+ORDER BY
+    TotalSales DESC;"""
+```
+
+```{python}
+df4 = pd.read_sql_query(query, conn)
+df4
+```
+
+```{python}
+import plotly.express as px
+
+fig = px.treemap(
+    df4,
+    path=['Category', 'Country'],
+    values='TotalSales',
+    color='Category',
+    title='Sales Distribution by Category and Country'
+)
+
+fig.show()
+```
+
+```{python}
+query = """SELECT * 
+FROM orders o
+LEFT JOIN customers c ON o.customerid = c.customerid 
+LEFT JOIN [order details] od ON o.orderid = od.orderid  
+LEFT JOIN products p ON od.productid = p.productid;  
+"""
+
+```
+
+```{python}
+execute_query(query)
+```
+
+```{python}
+df= pd.read_sql_query(query, conn)
+len(df)
+```
+
+```{python}
+df.columns
+```
+
+```{python}
+df.to_csv('/Users/alyssarocha/Desktop/AD 599/Project/northwind_data.csv', index=False)
+```
+
+```{python}
+#create a query to retrieve a unique list of customers and suppliers
+query = """SELECT
+    EmployeeID,
+    SUM(UnitPrice * Quantity * (1 - Discount)) AS TotalSales,
+    RANK() OVER (ORDER BY SUM(UnitPrice * Quantity * (1 - Discount)) DESC) AS SalesRank
+FROM
+    Orders o
+JOIN
+    [Order Details] od ON o.OrderID = od.OrderID
+GROUP BY
+    EmployeeID;"""  
+
+print("Unique Customers and Suppliers:")
+cursor.execute(query)
+results = cursor.fetchall() 
+results 
+
+df1= pd.DataFrame(results, columns=['EmployeeID', 'TotalSales', 'SalesRank'])
+```
+
